@@ -84,6 +84,7 @@ void start_nef(error_t *err) {
             printf("Receiving from client...\n");
 
             char *file_name = client_command + 11;
+            client_command += 11;
             while(*client_command && (*client_command) != ' ') ++client_command;
             client_command[0] = 0;
 
@@ -108,6 +109,7 @@ void start_nef(error_t *err) {
             printf("Sending to client...\n");
 
             char *file_name = client_command + 13;
+            client_command += 13;
             while(*client_command && (*client_command) != ' ') ++client_command;
             client_command[0] = 0;
 
