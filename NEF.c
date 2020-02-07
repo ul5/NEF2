@@ -77,7 +77,7 @@ void init_nef(error_t *err, char *debugging_enabled) {
 void start_nef(error_t *err, char *debugging_enabled) {
     struct sockaddr address;
     int addrlen, num_read;
-    char *client_command = (char*) malloc(100);
+    char *client_command = (char*) malloc(100), *orig_cmd;
 
 
     while(true) {
@@ -94,6 +94,7 @@ void start_nef(error_t *err, char *debugging_enabled) {
 
         num_read = read(client_socket, client_command, 99);
         client_command[num_read] = 0;
+        orig_cmd = client_command;
 
         if(!memcmp(client_command, NEF_COMMAND_HELP)) {
             write(client_socket, "Help for the NEF service:\n\tNEF_HELP: display this information\n\tNEF_UPLOAD <filename> <contents>: Upload a file from your system\n\tNEF_DOWNLOAD <path>: Download a file to your system", 181);
@@ -108,7 +109,8 @@ void start_nef(error_t *err, char *debugging_enabled) {
             if((*file_name == '/' || strstr(file_name, "/../")) && !debugging_enabled[1]) {
                 err->err_code = ERR_PATH_TRAVERSAL_DETECTED;
                 err->message = "Path traversal detected\n";
-                free(client_command);
+                free(orig_cmd);
+                close(client_socket);
                 return;
             }
 
@@ -133,7 +135,8 @@ void start_nef(error_t *err, char *debugging_enabled) {
             if((*file_name == '/' || strstr(file_name, "/../")) && !debugging_enabled[1]) {
                 err->err_code = ERR_PATH_TRAVERSAL_DETECTED;
                 err->message = "Path traversal detected\n";
-                free(client_command);
+                free(orig_cmd);
+                close(client_socket);
                 return;
             }
 
@@ -144,7 +147,8 @@ void start_nef(error_t *err, char *debugging_enabled) {
             if(!f) {
                 err->err_code = ERR_FILE_NOT_FOUND;
                 err->message = "File was not found\n";
-                free(client_command);
+                free(orig_cmd);
+                close(client_socket);
                 return;
             } else printf("Writing to file: %s\n", file_name);
 
@@ -166,18 +170,18 @@ void start_nef(error_t *err, char *debugging_enabled) {
             if((*file_name == '/' || strstr(file_name, "/../")) && !debugging_enabled[1]) {
                 err->err_code = ERR_PATH_TRAVERSAL_DETECTED;
                 err->message = "Path traversal detected\n";
-                free(client_command);
+                free(orig_cmd);
+                close(client_socket);
                 return;
-            }
-
-            printf("Sending: %s\n", file_name);
+            } else printf("Reading file %s\n", file_name);
 
             FILE *f = fopen(file_name, "rb");
 
             if(!f) {
                 err->err_code = ERR_FILE_NOT_FOUND;
                 err->message = "File was not found\n";
-                free(client_command);
+                free(orig_cmd);
+                close(client_socket);
                 return;
             } else printf("Reading from file: %s\n", file_name);
 
@@ -208,6 +212,7 @@ void start_nef(error_t *err, char *debugging_enabled) {
             memcpy(msg + 19, client_command, strlen(client_command));
             err->message = msg;
             close(client_socket);
+            free(orig_cmd);
             return;
         }
 
@@ -243,6 +248,7 @@ void run_nef(char *debugging_enabled) { // Do all the steps needed to run the NE
 
 int main(int argc, char **args) {
     char *debugging_enabled = (char*) malloc(4);
+    memset(debugging_enabled, 0, 4);
 
     for(int a = 1; a < argc; a++) {
         debugging_enabled[0] = (bool) strstr(args[a], "debugging-enabled=true");
