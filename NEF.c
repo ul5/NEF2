@@ -4,6 +4,8 @@
 #include <stdbool.h>
 #include <unistd.h>
 #include <string.h>
+#include <stdint.h>
+#include <math.h>
 
 #include <sys/types.h>
 #include <sys/socket.h>
@@ -85,7 +87,7 @@ void start_nef(error_t *err) {
 
             char *file_name = client_command + 11;
             client_command += 11;
-            while(*client_command && (*client_command) != ' ') ++client_command;
+            while(*client_command && (*client_command) != ' ' && (*client_command) != '\n') ++client_command;
             client_command[0] = 0;
 
             if(strstr(file_name, "/../")) {
@@ -110,7 +112,7 @@ void start_nef(error_t *err) {
 
             char *file_name = client_command + 13;
             client_command += 13;
-            while(*client_command && (*client_command) != ' ') ++client_command;
+            while(*client_command && (*client_command) != ' ' && (*client_command) != '\n') ++client_command;
             client_command[0] = 0;
 
             if(strstr(file_name, "/../")) {
@@ -144,9 +146,9 @@ void start_nef(error_t *err) {
 
             size_t num_written = 0;
             do {
-                size_t written = write(client_socket, data, 1024);
+                size_t to_write = min(1024, s - num_written);
+                size_t written = write(client_socket, data + num_written, to_write);
                 num_written += written;
-
             } while(num_written < s);
 
             free(data);

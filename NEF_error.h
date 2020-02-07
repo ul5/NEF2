@@ -25,6 +25,8 @@ typedef struct {
 
 
 #define CHECK_ERROR(err)    if(err.err_code) { printf(err.message, err.err_code); return err.err_code; }
+#define max(x, y) ((x) > (y) ? (x) : (y))
+#define min(x, y) ((x) > (y) ? (y) : (x))
 
 
 
