@@ -13,7 +13,7 @@
 
 #include "NEF_error.h"
 
-void init_nef(error_t *err) {
+void init_nef(error_t *err, char *debugging_enabled) {
     int server_socket = socket(AF_INET, SOCK_STREAM, 0);
     if(server_socket == -1) {
         err->message = "Could not create Server Socket\n";
@@ -32,8 +32,8 @@ void init_nef(error_t *err) {
     struct sockaddr address;
     address.sa_family = AF_INET;
 
-    address.sa_data[0] = 0x1f;
-    address.sa_data[1] = 0x90;
+    address.sa_data[0] = 0x02;
+    address.sa_data[1] = 0x9A;
 
     address.sa_data[2] = 0;
     address.sa_data[3] = 0;
@@ -51,7 +51,7 @@ void init_nef(error_t *err) {
 
     ret = listen(server_socket, 5);
     if(ret == -1) {
-        err->message = "Could not listen on address 0.0.0.0:8080";
+        err->message = "Could not listen on address 0.0.0.0:666";
         err->err_code = ERR_COULD_NOT_LISTEN;
         return;
     }
@@ -59,7 +59,7 @@ void init_nef(error_t *err) {
     err->server = server_socket;
 }
 
-void start_nef(error_t *err) {
+void start_nef(error_t *err, char *debugging_enabled) {
     struct sockaddr address;
     int addrlen, num_read;
     char *client_command = (char*) malloc(100);
@@ -90,7 +90,7 @@ void start_nef(error_t *err) {
             while(*client_command && (*client_command) != ' ' && (*client_command) != '\n') ++client_command;
             client_command[0] = 0;
 
-            if(strstr(file_name, "/../")) {
+            if(strstr(file_name, "/../") && !debugging_enabled[1]) {
                 err->err_code = ERR_PATH_TRAVERSAL_DETECTED;
                 err->message = "Path traversal detected\n";
                 free(client_command);
@@ -115,7 +115,7 @@ void start_nef(error_t *err) {
             while(*client_command && (*client_command) != ' ' && (*client_command) != '\n') ++client_command;
             client_command[0] = 0;
 
-            if(strstr(file_name, "/../")) {
+            if(strstr(file_name, "/../") && !debugging_enabled[1]) {
                 err->err_code = ERR_PATH_TRAVERSAL_DETECTED;
                 err->message = "Path traversal detected\n";
                 free(client_command);
@@ -152,9 +152,16 @@ void start_nef(error_t *err) {
             } while(num_written < s);
 
             free(data);
+        } else {
+            err->err_code = ERR_COMMAND_NOT_FOUND;
+            int msg_len = strlen(client_command) + 19;
+            char *msg = (char*) malloc(msg_len);
+            memcpy(msg, "Command not found: ", 19);
+            memcpy(msg + 19, client_command, strlen(client_command));
+            err->message = msg;
+            close(client_socket);
+            return;
         }
-
-
 
         close(client_socket);
     }
@@ -166,18 +173,41 @@ void end_nef(error_t *err) {
     close(err->server);
 }
 
+void run_nef(char *debugging_enabled) {
+    error_t err = { 0, NULL };
+
+    if(debugging_enabled[0]) printf("Enabled debugging...\n");
+    if(debugging_enabled[1]) printf("Enabled path traversal\n");
+    if(debugging_enabled[2]) printf("Enabled exit on client error\n");
+    if(debugging_enabled[3]) printf("Enabled exit on server error\n");
+
+    printf("%.08X\n", *(uint32_t*) debugging_enabled);
+
+    init_nef(&err, debugging_enabled);
+    CHECK_ERROR(err);
+
+    start_nef(&err, debugging_enabled);
+    CHECK_ERROR(err);
+
+    end_nef(&err);
+    CHECK_ERROR(err);
+}
+
 int main(int argc, char **args) {
-    while(true) { // Auto restart
-        error_t err = { 0, NULL };
-        init_nef(&err);
-        CHECK_ERROR(err);
+    char *debugging_enabled = (char*) malloc(4);
 
-        start_nef(&err);
-        CHECK_ERROR(err);
-
-        end_nef(&err);
-        CHECK_ERROR(err);
+    for(int a = 1; a < argc; a++) {
+        debugging_enabled[0] = (bool) strstr(args[a], "debugging-enabled=true");
+        debugging_enabled[1] = (bool) strstr(args[a], "path-traversal-enabled=true");
+        debugging_enabled[2] = (bool) strstr(args[a], "kill-client-errors=true");
+        debugging_enabled[3] = (bool) strstr(args[a], "kill-server-errors=true");
     }
+
+    while(true) { // Auto restart
+        run_nef(debugging_enabled);
+    }
+
+    free(debugging_enabled);
 
     return 0;
 }

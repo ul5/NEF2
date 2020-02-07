@@ -7,11 +7,11 @@ OBJS:=NEF.o
 all: clean NEF
 
 clean:
-	rm -f *.o
-	rm -f NEF
+	-rm -f *.o
+	-rm -f NEF
 
 NEF: $(OBJS)
-	$(CXX) -o NEF $(OBJS)
+	$(CXX)  -g -o NEF $(OBJS)
 
 %.o: $.c
-	$(CXX) -Wp -w -c $(INCLUDE_DIRS) $(LIBRARY_DIRS) $(LIBRARY_FILES) -o @.o $.c
+	$(CXX) -Wp -w -c -g $(INCLUDE_DIRS) $(LIBRARY_DIRS) $(LIBRARY_FILES) -o @.o $.c
