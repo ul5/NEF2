@@ -13,6 +13,13 @@
 
 #include "NEF_error.h"
 
+/**
+ *  init_nef
+ *  
+ *  Sets up the server socket, binds it to the local address
+ *  and then listens on port 666 for incoming connections
+ * 
+ */
 void init_nef(error_t *err, char *debugging_enabled) {
     int server_socket = socket(AF_INET, SOCK_STREAM, 0);
     if(server_socket == -1) {
@@ -59,6 +66,14 @@ void init_nef(error_t *err, char *debugging_enabled) {
     err->server = server_socket;
 }
 
+/**
+ *  Starts the NEF service, so we listen for a client
+ *  and execute the command it sends
+ * 
+ *  May return on error, the error handling is done in
+ *  the function calling.
+ * 
+ */ 
 void start_nef(error_t *err, char *debugging_enabled) {
     struct sockaddr address;
     int addrlen, num_read;
@@ -82,7 +97,7 @@ void start_nef(error_t *err, char *debugging_enabled) {
 
         if(!memcmp(client_command, NEF_COMMAND_HELP)) {
             write(client_socket, "Help for the NEF service:\n\tNEF_HELP: display this information\n\tNEF_UPLOAD <filename> <contents>: Upload a file from your system\n\tNEF_DOWNLOAD <path>: Download a file to your system", 181);
-        } else if(!memcmp(client_command, NEF_COMMAND_SEND)) {
+        } else if(!memcmp(client_command, NEF_COMMAND_SEND)) { // Somebody wants to send data into a file on the server
             printf("Receiving from client...\n");
 
             char *file_name = client_command + 11;
@@ -90,7 +105,7 @@ void start_nef(error_t *err, char *debugging_enabled) {
             while(*client_command && (*client_command) != ' ' && (*client_command) != '\n') ++client_command;
             client_command[0] = 0;
 
-            if(strstr(file_name, "/../") && !debugging_enabled[1]) {
+            if((file_name == '/' || strstr(file_name, "/../")) && !debugging_enabled[1]) {
                 err->err_code = ERR_PATH_TRAVERSAL_DETECTED;
                 err->message = "Path traversal detected\n";
                 free(client_command);
@@ -107,7 +122,7 @@ void start_nef(error_t *err, char *debugging_enabled) {
             fclose(f);
 
             free(data);
-        }else if(!memcmp(client_command, NEF_COMMAND_APPEND)) {
+        }else if(!memcmp(client_command, NEF_COMMAND_APPEND)) { // Somebody wants to append to a file
             printf("Receiving from client...\n");
 
             char *file_name = client_command + 11;
@@ -115,7 +130,7 @@ void start_nef(error_t *err, char *debugging_enabled) {
             while(*client_command && (*client_command) != ' ' && (*client_command) != '\n') ++client_command;
             client_command[0] = 0;
 
-            if(strstr(file_name, "/../") && !debugging_enabled[1]) {
+            if((file_name == '/' || strstr(file_name, "/../")) && !debugging_enabled[1]) {
                 err->err_code = ERR_PATH_TRAVERSAL_DETECTED;
                 err->message = "Path traversal detected\n";
                 free(client_command);
@@ -140,7 +155,7 @@ void start_nef(error_t *err, char *debugging_enabled) {
             fclose(f);
 
             free(data);
-        } else if(!memcmp(client_command, NEF_COMMAND_RECV)) {
+        } else if(!memcmp(client_command, NEF_COMMAND_RECV)) { // The client wants to receive something from the uploaded files
             printf("Sending to client...\n");
 
             char *file_name = client_command + 13;
@@ -148,7 +163,7 @@ void start_nef(error_t *err, char *debugging_enabled) {
             while(*client_command && (*client_command) != ' ' && (*client_command) != '\n') ++client_command;
             client_command[0] = 0;
 
-            if(strstr(file_name, "/../") && !debugging_enabled[1]) {
+            if((file_name == '/' || strstr(file_name, "/../")) && !debugging_enabled[1]) {
                 err->err_code = ERR_PATH_TRAVERSAL_DETECTED;
                 err->message = "Path traversal detected\n";
                 free(client_command);
@@ -185,7 +200,7 @@ void start_nef(error_t *err, char *debugging_enabled) {
             } while(num_written < s);
 
             free(data);
-        } else {
+        } else { // Command was not found, so handle the error
             err->err_code = ERR_COMMAND_NOT_FOUND;
             int msg_len = strlen(client_command) + 19;
             char *msg = (char*) malloc(msg_len);
@@ -203,10 +218,10 @@ void start_nef(error_t *err, char *debugging_enabled) {
 }
 
 void end_nef(error_t *err) {
-    close(err->server);
+    close(err->server); // Cleanup
 }
 
-void run_nef(char *debugging_enabled) {
+void run_nef(char *debugging_enabled) { // Do all the steps needed to run the NEF service 2.0
     error_t err = { 0, NULL };
 
     if(debugging_enabled[0]) printf("Enabled debugging...\n");
@@ -236,7 +251,7 @@ int main(int argc, char **args) {
         debugging_enabled[3] = (bool) strstr(args[a], "kill-server-errors=true");
     }
 
-    while(true) { // Auto restart
+    while(true) { // Auto restart the service... Only exit if the error should kill the process
         run_nef(debugging_enabled);
     }
 
