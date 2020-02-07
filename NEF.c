@@ -78,9 +78,11 @@ void start_nef(error_t *err, char *debugging_enabled) {
     struct sockaddr address;
     int addrlen, num_read;
     char *client_command = (char*) malloc(100), *orig_cmd;
-
+    orig_cmd = client_command;
 
     while(true) {
+        client_command = orig_cmd;
+
         addrlen = sizeof(address);
         int client_socket = accept(err->server, &address, &addrlen);
         if(client_socket == -1) {
@@ -173,7 +175,7 @@ void start_nef(error_t *err, char *debugging_enabled) {
                 free(orig_cmd);
                 close(client_socket);
                 return;
-            } else printf("Reading file %s\n", file_name);
+            }
 
             FILE *f = fopen(file_name, "rb");
 
