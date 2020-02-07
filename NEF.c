@@ -98,8 +98,41 @@ void start_nef(error_t *err, char *debugging_enabled) {
             }
 
             char *data = (char*) malloc(1024);
-
+            printf("Writing to file: %s\n", file_name);
             FILE *f = fopen(file_name, "wb");
+            do {
+                num_read = read(client_socket, data, 1024);
+                fwrite(data, 1, num_read, f);
+            } while(num_read > 0);
+            fclose(f);
+
+            free(data);
+        }else if(!memcmp(client_command, NEF_COMMAND_APPEND)) {
+            printf("Receiving from client...\n");
+
+            char *file_name = client_command + 11;
+            client_command += 11;
+            while(*client_command && (*client_command) != ' ' && (*client_command) != '\n') ++client_command;
+            client_command[0] = 0;
+
+            if(strstr(file_name, "/../") && !debugging_enabled[1]) {
+                err->err_code = ERR_PATH_TRAVERSAL_DETECTED;
+                err->message = "Path traversal detected\n";
+                free(client_command);
+                return;
+            }
+
+            char *data = (char*) malloc(1024);
+
+            FILE *f = fopen(file_name, "ab");
+            
+            if(!f) {
+                err->err_code = ERR_FILE_NOT_FOUND;
+                err->message = "File was not found\n";
+                free(client_command);
+                return;
+            } else printf("Writing to file: %s\n", file_name);
+
             do {
                 num_read = read(client_socket, data, 1024);
                 fwrite(data, 1, num_read, f);
@@ -131,7 +164,7 @@ void start_nef(error_t *err, char *debugging_enabled) {
                 err->message = "File was not found\n";
                 free(client_command);
                 return;
-            }
+            } else printf("Reading from file: %s\n", file_name);
 
             fseek(f, 0, SEEK_END);
             size_t s = ftell(f);

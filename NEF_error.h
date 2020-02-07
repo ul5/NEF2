@@ -17,6 +17,7 @@
 #define NEF_COMMAND_HELP                    "NEF_HELP",      8ul
 #define NEF_COMMAND_SEND                    "NEF_UPLOAD",   10ul
 #define NEF_COMMAND_RECV                    "NEF_DOWNLOAD", 12ul
+#define NEF_COMMAND_APPEND                  "NEF_APPEND",   10ul
 
 typedef struct {
     uint64_t err_code;
