@@ -105,7 +105,7 @@ void start_nef(error_t *err, char *debugging_enabled) {
             while(*client_command && (*client_command) != ' ' && (*client_command) != '\n') ++client_command;
             client_command[0] = 0;
 
-            if((file_name == '/' || strstr(file_name, "/../")) && !debugging_enabled[1]) {
+            if((*file_name == '/' || strstr(file_name, "/../")) && !debugging_enabled[1]) {
                 err->err_code = ERR_PATH_TRAVERSAL_DETECTED;
                 err->message = "Path traversal detected\n";
                 free(client_command);
@@ -130,7 +130,7 @@ void start_nef(error_t *err, char *debugging_enabled) {
             while(*client_command && (*client_command) != ' ' && (*client_command) != '\n') ++client_command;
             client_command[0] = 0;
 
-            if((file_name == '/' || strstr(file_name, "/../")) && !debugging_enabled[1]) {
+            if((*file_name == '/' || strstr(file_name, "/../")) && !debugging_enabled[1]) {
                 err->err_code = ERR_PATH_TRAVERSAL_DETECTED;
                 err->message = "Path traversal detected\n";
                 free(client_command);
@@ -163,7 +163,7 @@ void start_nef(error_t *err, char *debugging_enabled) {
             while(*client_command && (*client_command) != ' ' && (*client_command) != '\n') ++client_command;
             client_command[0] = 0;
 
-            if((file_name == '/' || strstr(file_name, "/../")) && !debugging_enabled[1]) {
+            if((*file_name == '/' || strstr(file_name, "/../")) && !debugging_enabled[1]) {
                 err->err_code = ERR_PATH_TRAVERSAL_DETECTED;
                 err->message = "Path traversal detected\n";
                 free(client_command);
